@@ -1,0 +1,162 @@
+import React, { useState } from 'react';
+import { Plus, Minus, X, Delete, CornerDownLeft, History } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+const EggProductionCalculator = () => {
+  const [input, setInput] = useState('');
+  const [total, setTotal] = useState({ crates: 0, pieces: 0 });
+  const [history, setHistory] = useState([]);
+  const [showAlert, setShowAlert] = useState(false);
+
+  const calculateCratesPieces = (cratesPiecesStr) => {
+    const parts = cratesPiecesStr.replace(/\s/g, '+').split('+');
+    let totalCrates = 0;
+    let totalPieces = 0;
+    
+    for (const part of parts) {
+      if (part.includes('.')) {
+        const [crates, pieces] = part.split('.').map(Number);
+        totalCrates += crates;
+        totalPieces += pieces;
+      } else {
+        totalCrates += Number(part);
+      }
+    }
+    
+    const additionalCrates = Math.floor(totalPieces / 30);
+    totalCrates += additionalCrates;
+    totalPieces %= 30;
+    
+    return { crates: totalCrates, pieces: totalPieces };
+  };
+
+  const handleCalculate = () => {
+    try {
+      const result = calculateCratesPieces(input);
+      setTotal(result);
+      setHistory(prevHistory => {
+        const newHistory = [{ input, result }, ...prevHistory];
+        return newHistory.slice(0, 20); // Keep only the last 20 calculations
+      });
+      setShowAlert(false);
+    } catch (error) {
+      setShowAlert(true);
+    }
+  };
+
+  const handleClear = () => {
+    setInput('');
+    setTotal({ crates: 0, pieces: 0 });
+    setShowAlert(false);
+  };
+
+  const handleKeyPress = (key) => {
+    setInput(prevInput => prevInput + key);
+  };
+
+  const handleDelete = () => {
+    setInput(prevInput => prevInput.slice(0, -1));
+  };
+
+  const handleRecallCalculation = (calculation) => {
+    setInput(calculation.input);
+    setTotal(calculation.result);
+  };
+
+  const renderKeypadButton = (value) => (
+    <Button 
+      onClick={() => handleKeyPress(value)} 
+      className="w-16 h-16 text-xl font-bold"
+      variant="outline"
+    >
+      {value}
+    </Button>
+  );
+
+  return (
+    <div className="max-w-md mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">Egg Production Calculator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter crates and pieces"
+              className="w-full text-xl h-12"
+            />
+            {showAlert && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Invalid input. Please enter a valid number format.
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="grid grid-cols-4 gap-2">
+              {renderKeypadButton('7')}
+              {renderKeypadButton('8')}
+              {renderKeypadButton('9')}
+              <Button onClick={() => handleKeyPress('+')} className="w-16 h-16" variant="outline">
+                <Plus size={24} />
+              </Button>
+              {renderKeypadButton('4')}
+              {renderKeypadButton('5')}
+              {renderKeypadButton('6')}
+              <Button onClick={() => handleKeyPress('-')} className="w-16 h-16" variant="outline">
+                <Minus size={24} />
+              </Button>
+              {renderKeypadButton('1')}
+              {renderKeypadButton('2')}
+              {renderKeypadButton('3')}
+              <Button onClick={handleDelete} className="w-16 h-16" variant="outline">
+                <Delete size={24} />
+              </Button>
+              {renderKeypadButton('0')}
+              {renderKeypadButton('.')}
+              <Button onClick={handleClear} className="w-16 h-16" variant="outline">
+                <X size={24} />
+              </Button>
+              <Button onClick={handleCalculate} className="w-16 h-16 bg-blue-500 hover:bg-blue-600 text-white">
+                <CornerDownLeft size={24} />
+              </Button>
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-semibold">Total:</h3>
+              <p className="text-2xl">
+                {total.crates} crates and {total.pieces} pieces
+              </p>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                  <History className="mr-2 h-4 w-4" /> View Calculation History
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Calculation History</DialogTitle>
+                </DialogHeader>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {history.map((item, index) => (
+                    <div key={index} className="bg-gray-100 p-2 rounded mb-2 cursor-pointer hover:bg-gray-200" onClick={() => handleRecallCalculation(item)}>
+                      <span className="font-medium">{item.input}</span> = {item.result.crates} crates and {item.result.pieces} pieces
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default EggProductionCalculator;
